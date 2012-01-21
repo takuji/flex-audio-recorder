@@ -6,8 +6,55 @@
     <s:VerticalLayout />
   </s:layout>
 
-  <s:Panel title="Audio Recorder">
-    <s:Label text="Hello World" fontWeight="bold" fontSize="24" />
-  </s:Panel>
-
+  <s:HGroup id="main" gap="10" paddingTop="10" paddingLeft="10" paddingBottom="10" paddingRight="10">
+    <s:Group id="controlPanel">
+      <s:HGroup id="stopStatePanel">
+        <s:Button label="Start" click="startRecording();" />
+      </s:HGroup>
+      <s:HGroup id="recordingStatePanel" visible="false">
+        <s:Button label="Stop" click="stopRecording();" />
+      </s:HGroup>
+      <s:HGroup id="hasDataStatePanel" visible="false">
+        <s:Button label="Play" click="startPlaying();" />
+        <s:Button label="Reset" click="reset();" />
+        <s:Button label="send" click="upload();" />
+      </s:HGroup>
+      <s:HGroup id="playingStatePanel" visible="false">
+        <s:Button label="Stop" click="stopPlaying();" />
+        <s:Button label="Reset" click="reset();" />
+        <s:Button label="Send" click="upload();" />
+      </s:HGroup>
+    </s:Group>
+    <s:Label text="00 sec" fontWeight="bold" fontSize="24" />
+  </s:HGroup>
+  <fx:Script>
+    <![CDATA[
+      private function startRecording():void {
+        stopStatePanel.visible = false;
+        recordingStatePanel.visible = true;
+      }
+      private function stopRecording():void {
+        recordingStatePanel.visible = false;
+        hasDataStatePanel.visible = true;
+      }
+      private function startPlaying():void {
+        hasDataStatePanel.visible = false;
+        playingStatePanel.visible = true;
+      }
+      private function stopPlaying():void {
+        playingStatePanel.visible = false;
+        hasDataStatePanel.visible = true;
+      }
+      private function reset():void {
+        hasDataStatePanel.visible = false;
+        playingStatePanel.visible = false;
+        stopStatePanel.visible = true;
+      }
+      private function upload():void {
+        hasDataStatePanel.visible = false;
+        playingStatePanel.visible = false;
+        stopStatePanel.visible = true;
+      }
+    ]]>
+  </fx:Script>
 </s:Application>
