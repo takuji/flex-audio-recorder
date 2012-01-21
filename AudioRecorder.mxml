@@ -3,7 +3,7 @@
                xmlns:mx="library://ns.adobe.com/flex/mx"
                xmlns:s="library://ns.adobe.com/flex/spark">
   <s:layout>
-    <s:VertialLayout />
+    <s:VerticalLayout />
   </s:layout>
 
   <s:Panel title="Audio Recorder">
