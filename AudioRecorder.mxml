@@ -25,23 +25,72 @@
         <s:Button label="Send" click="upload();" />
       </s:HGroup>
     </s:Group>
-    <s:Label text="00 sec" fontWeight="bold" fontSize="24" />
+    <s:Label id="timeDisplay" text="00 sec" fontWeight="bold" fontSize="24" />
   </s:HGroup>
   <fx:Script>
     <![CDATA[
+      import flash.media.Microphone;
+      import flash.events.SampleDataEvent;
+      import flash.media.Sound;
+      import flash.media.SoundChannel;
+      import flash.utils.Timer;
+      import flash.events.TimerEvent;
+
+      protected var audioData:ByteArray;
+      protected var microphone:Microphone;
+      protected var channel:SoundChannel;
+      private var startTime:Date;
+      private var timer:Timer;
+
+      private function init():void {
+        if (Microphone.isSupported) {
+
+        }
+      }
+
       private function startRecording():void {
+        trace("Start recording");
+        microphone = Microphone.getMicrophone(0);
+        microphone.rate = 44;
+        microphone.gain = 100;
+        audioData = new ByteArray();
+        startTime = new Date();
+        timer = new Timer(1000);
+        resetTimeDisplay();
+        timer.addEventListener("timer", updateTimeDisplay);
+        timer.start();
+        microphone.addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleDataReceived);
+
         stopStatePanel.visible = false;
         recordingStatePanel.visible = true;
       }
       private function stopRecording():void {
+        trace("Stopped recording");
+        microphone.removeEventListener(SampleDataEvent.SAMPLE_DATA, onSampleDataReceived);
+        timer.removeEventListener("timer", updateTimeDisplay);
+        timer.stop();
+
         recordingStatePanel.visible = false;
         hasDataStatePanel.visible = true;
       }
       private function startPlaying():void {
+        audioData.position = 0;
+        var audio:Sound = new Sound();
+        startTime = new Date();
+        timer = new Timer(1000);
+        resetTimeDisplay();
+        timer.addEventListener("timer", updateTimeDisplay)
+        timer.start();
+        audio.addEventListener(SampleDataEvent.SAMPLE_DATA, audioSampleHandler);
+        channel = audio.play();
+        channel.addEventListener(Event.SOUND_COMPLETE, audioCompleteHandler);
+
         hasDataStatePanel.visible = false;
         playingStatePanel.visible = true;
       }
       private function stopPlaying():void {
+        timer.removeEventListener("timer", updateTimeDisplay);
+        timer.stop();
         playingStatePanel.visible = false;
         hasDataStatePanel.visible = true;
       }
@@ -54,6 +103,54 @@
         hasDataStatePanel.visible = false;
         playingStatePanel.visible = false;
         stopStatePanel.visible = true;
+      }
+      
+      private function showPanel(panel:Group):void {
+        stopStatePanel.visible = false;
+        recordingStatePanel.visible = false;
+        hasDataStatePanel.visible = false;
+        playingStatePanel.visible = false;
+
+        panel.visible = true;
+      }
+
+      private function onSampleDataReceived(event:SampleDataEvent):void {
+        while (event.data.bytesAvailable) {
+          var sample:Number = event.data.readFloat();
+          audioData.writeFloat(sample);
+        }
+      }
+      private function audioSampleHandler(event:SampleDataEvent):void {
+        if (!audioData.bytesAvailable > 0) {
+          return;
+        }
+        for (var i:int = 0; i < 8192; i++) {
+          var sample:Number = 0;
+          if (audioData.bytesAvailable > 0) {
+            sample = audioData.readFloat();
+          }
+          event.data.writeFloat(sample);
+          event.data.writeFloat(sample);
+        }
+      }
+      private function audioCompleteHandler(event:Event):void {
+        timer.removeEventListener("timer", updateTimeDisplay);
+        timer.stop();
+        showPanel(hasDataStatePanel);
+      }
+      private function updateTimeDisplay(event:TimerEvent):void {
+        var currentTime = new Date();
+        var sec = int((currentTime.time - startTime.time) / 1000);
+        timeDisplay.text = zeroPad(sec.toString(), 2);
+      }
+      private function resetTimeDisplay():void {
+        timeDisplay.text = zeroPad(Number(0).toString(), 2);
+      }
+      private function zeroPad (number:String, width:int):String {
+        if (number.length < width) {
+          return "0" + zeroPad(number, width-1);
+        }
+        return number;
       }
     ]]>
   </fx:Script>
