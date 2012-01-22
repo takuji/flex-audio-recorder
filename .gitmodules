@@ -1,0 +1,3 @@
+[submodule "Shine-MP3-Encoder"]
+	path = Shine-MP3-Encoder
+	url = git://github.com/kikko/Shine-MP3-Encoder-on-AS3-Alchemy.git
