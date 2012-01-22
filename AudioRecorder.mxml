@@ -35,12 +35,17 @@
       import flash.media.SoundChannel;
       import flash.utils.Timer;
       import flash.events.TimerEvent;
+      import flash.net.FileReference;
+      import ghostcat.fileformat.wav.WAVWriter;
+      import mx.controls.Alert;
 
       protected var audioData:ByteArray;
       protected var microphone:Microphone;
       protected var channel:SoundChannel;
       private var startTime:Date;
       private var timer:Timer;
+      private var wavData:ByteArray;
+      private var samplingRateFactor = 2;
 
       private function init():void {
         if (Microphone.isSupported) {
@@ -51,7 +56,7 @@
       private function startRecording():void {
         trace("Start recording");
         microphone = Microphone.getMicrophone(0);
-        microphone.rate = 44;
+        microphone.rate = 44 / samplingRateFactor;
         microphone.gain = 100;
         audioData = new ByteArray();
         startTime = new Date();
@@ -70,8 +75,7 @@
         timer.removeEventListener("timer", updateTimeDisplay);
         timer.stop();
 
-        recordingStatePanel.visible = false;
-        hasDataStatePanel.visible = true;
+        showPanel(hasDataStatePanel);
       }
       private function startPlaying():void {
         audioData.position = 0;
@@ -85,24 +89,23 @@
         channel = audio.play();
         channel.addEventListener(Event.SOUND_COMPLETE, audioCompleteHandler);
 
-        hasDataStatePanel.visible = false;
-        playingStatePanel.visible = true;
+        showPanel(playingStatePanel);
       }
       private function stopPlaying():void {
         timer.removeEventListener("timer", updateTimeDisplay);
         timer.stop();
-        playingStatePanel.visible = false;
-        hasDataStatePanel.visible = true;
+
+        showPanel(hasDataStatePanel);
       }
       private function reset():void {
-        hasDataStatePanel.visible = false;
-        playingStatePanel.visible = false;
-        stopStatePanel.visible = true;
+        showPanel(stopStatePanel);
       }
       private function upload():void {
-        hasDataStatePanel.visible = false;
-        playingStatePanel.visible = false;
-        stopStatePanel.visible = true;
+        wavData = makeWavFile(audioData);
+        var f:FileReference = new FileReference();
+        f.save(wavData, "appeal.wav");
+
+        showPanel(stopStatePanel);
       }
       
       private function showPanel(panel:Group):void {
@@ -124,13 +127,16 @@
         if (!audioData.bytesAvailable > 0) {
           return;
         }
-        for (var i:int = 0; i < 8192; i++) {
+        var n = 8192 / samplingRateFactor;
+        for (var i:int = 0; i < n; i++) {
           var sample:Number = 0;
           if (audioData.bytesAvailable > 0) {
             sample = audioData.readFloat();
           }
-          event.data.writeFloat(sample);
-          event.data.writeFloat(sample);
+          for (var j:int = 0; j < samplingRateFactor; j++) {
+            event.data.writeFloat(sample);
+            event.data.writeFloat(sample);
+          }
         }
       }
       private function audioCompleteHandler(event:Event):void {
@@ -139,8 +145,8 @@
         showPanel(hasDataStatePanel);
       }
       private function updateTimeDisplay(event:TimerEvent):void {
-        var currentTime = new Date();
-        var sec = int((currentTime.time - startTime.time) / 1000);
+        var currentTime:Date = new Date();
+        var sec:int = int((currentTime.time - startTime.time) / 1000);
         timeDisplay.text = zeroPad(sec.toString(), 2);
       }
       private function resetTimeDisplay():void {
@@ -152,6 +158,26 @@
         }
         return number;
       }
+
+      private function makeWavFile(rawData:ByteArray): ByteArray {
+        try {
+          var buf:ByteArray = new ByteArray();
+          var wavWriter:WAVWriter = new WAVWriter();
+          var samplingRate = 44000 / samplingRateFactor;
+          wavWriter.numOfChannels = 1;
+          wavWriter.samplingRate = samplingRate;
+          rawData.position = 0;
+          wavWriter.processSamples(buf, rawData, samplingRate, 1);
+          return buf;
+        } catch (e:Error) {
+          trace(e);
+          Alert.show(e.message, "Alert Window Title", Alert.OK);
+          return null;
+        }
+        return null;
+      }
+
     ]]>
   </fx:Script>
+
 </s:Application>
